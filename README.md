@@ -8,7 +8,7 @@ operations accepting both fields and agents as arguments, and operations that ar
 Campo resembles and extends the map algebra approach to field-agent modelling and allows for the construction of static or dynamic models.
 
 
-You can find more information on the Campo [project website](http://campo.computationalgeography.org/).
+You can find more information on the Campo [project website](https://campo.computationalgeography.org/).
 Documentation can be found [here](https://campo.computationalgeography.org/documentation/index.html).
 Campo is developed by the [Computational Geography](https://www.computationalgeography.org) group.
 

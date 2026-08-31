@@ -21,28 +21,33 @@ env:
 jobs:
 
     build:
-        runs-on: ubuntu-22.04
-        name: "Build and deploy"
-        timeout-minutes: 8
+
+        strategy:
+            matrix:
+                include:
+                  - os: ubuntu-26.04
+                  - os: macos-15
+                  - os: windows-2025
+
+            fail-fast: false
+
+        runs-on: ${{ matrix.os }}
+
+        name: ${{ matrix.os }}
+
+        timeout-minutes: 10
 
         steps:
 
             - name: Checkout Campo
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
-            - name: configure system
-              run: |
-                  # sudo apt-get update
-                  # sudo apt-get upgrade
-                  # sudo apt-get autoremove
-                  sudo apt-get --yes install lftp
-
-            - uses: conda-incubator/setup-miniconda@v3
+            - uses: mamba-org/setup-micromamba@v3
               with:
-                  activate-environment: campo_dev
-                  environment-file: environment/configuration/campo_dev.yaml
-                  python-version: 3.11
-                  auto-activate-base: false
+                environment-file: environment/configuration/campo_dev.yaml
+                init-shell: >-
+                  bash
+                  powershell
 
             - name: Configure Campo
               shell: bash -l {0}
@@ -65,14 +70,22 @@ jobs:
               run: |
                   ctest --test-dir ${{ env.build-directory }} --output-on-failure
 
+            - name: Configure system for documentation upload
+              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-26.04'
+              run: |
+                  # sudo apt-get update
+                  # sudo apt-get upgrade
+                  # sudo apt-get autoremove
+                  sudo apt-get --yes install lftp
+
             - name: Deploy documentation
-              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master'
+              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-26.04'
               run: |
                   cd ${{ env.build-directory }}
                   # lftp -c "open --user ${{ env.ftp_username }} --password ${{ env.ftp_password }} -p ${{ env.ftp_port }} ${{ env.ftp_server }};set sftp:auto-confirm yes;set ssl:verify-certificate false;mirror --verbose --reverse --continue --parallel=2 documentation/_build/ ${{ env.remote_dir1 }}"
 
             - name: Deploy wheel
-              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master'
+              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-26.04'
               run: |
                   mkdir -p $HOME/.ssh
                   echo "HostKeyAlgorithms ssh-rsa" >> $HOME/.ssh/config
@@ -82,7 +95,7 @@ jobs:
                   lftp -c "open --user ${{ env.ftp_username }} --password ${{ env.ftp_password }} -p ${{ env.ftp_port }} ${{ env.ftp_server }};set sftp:auto-confirm yes;set ssl:verify-certificate false;mirror --verbose --reverse --continue package/dist/ ${{ env.remote_dir2 }}"
 
             - name: Deploy development documentation
-              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master'
+              if: github.repository == 'computationalgeography/campo' && github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-26.04'
               run: |
                   cd ${{ env.build-directory }}
                   lftp -c "open --user ${{ env.ftp_username }} --password ${{ env.ftp_password }} -p ${{ env.ftp_port }} ${{ env.ftp_server }};set sftp:auto-confirm yes;set ssl:verify-certificate false;mirror --verbose --reverse --continue --parallel=2 documentation/_build/ ${{ env.remote_dir3 }}"
